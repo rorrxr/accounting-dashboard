@@ -1,15 +1,44 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { FileUpload } from './components/file-upload'
-import { ProcessingResultResponse } from './lib/types'
+import { TransactionList } from './components/transaction-list'
+import { ProcessingResultResponse, CategorySummaryResponse } from './lib/types'
+import { apiClient } from './lib/api-client'
 
 function App() {
   const [selectedCompany, setSelectedCompany] = useState("com_1")
   const [processingResult, setProcessingResult] = useState<ProcessingResultResponse | null>(null)
+  const [summaryStats, setSummaryStats] = useState<CategorySummaryResponse | null>(null)
+  const [loading, setLoading] = useState(false)
 
   const companies = [
     { id: "com_1", name: "A커머스" },
     { id: "com_2", name: "B커머스" }
   ]
+
+  // 회사 변경 시 통계 데이터 새로고침
+  useEffect(() => {
+    if (selectedCompany) {
+      fetchSummaryStats()
+    }
+  }, [selectedCompany])
+
+  const fetchSummaryStats = async () => {
+    try {
+      setLoading(true)
+      const stats = await apiClient.getTotalSummary(selectedCompany)
+      setSummaryStats(stats)
+    } catch (error) {
+      console.error('Failed to fetch summary stats:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleProcessingComplete = (result: ProcessingResultResponse) => {
+    setProcessingResult(result)
+    // 처리 완료 후 통계 새로고침
+    fetchSummaryStats()
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -65,7 +94,7 @@ function App() {
 
           {/* File Upload Card */}
           <div className="mb-8">
-            <FileUpload onProcessingComplete={setProcessingResult} />
+            <FileUpload onProcessingComplete={handleProcessingComplete} />
           </div>
 
           {/* Processing Result */}
@@ -105,7 +134,9 @@ function App() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-blue-100 text-sm font-medium">총 수입</p>
-                  <p className="text-2xl font-bold mt-1">₩0</p>
+                  <p className="text-2xl font-bold mt-1">
+                    {loading ? '로딩 중...' : `₩${summaryStats?.totalIncome?.toLocaleString() || 0}`}
+                  </p>
                 </div>
                 <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
                   📈
@@ -121,7 +152,9 @@ function App() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-rose-100 text-sm font-medium">총 지출</p>
-                  <p className="text-2xl font-bold mt-1">₩0</p>
+                  <p className="text-2xl font-bold mt-1">
+                    {loading ? '로딩 중...' : `₩${summaryStats?.totalExpense?.toLocaleString() || 0}`}
+                  </p>
                 </div>
                 <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
                   📉
@@ -137,7 +170,9 @@ function App() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-emerald-100 text-sm font-medium">순이익</p>
-                  <p className="text-2xl font-bold mt-1">₩0</p>
+                  <p className="text-2xl font-bold mt-1">
+                    {loading ? '로딩 중...' : `₩${((summaryStats?.totalIncome || 0) - (summaryStats?.totalExpense || 0)).toLocaleString()}`}
+                  </p>
                 </div>
                 <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
                   💰
@@ -153,7 +188,9 @@ function App() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-amber-100 text-sm font-medium">미분류</p>
-                  <p className="text-2xl font-bold mt-1">0건</p>
+                  <p className="text-2xl font-bold mt-1">
+                    {loading ? '로딩 중...' : `${processingResult?.unclassifiedCount || 0}건`}
+                  </p>
                 </div>
                 <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
                   ⚠️
@@ -165,20 +202,9 @@ function App() {
             </div>
           </div>
 
-          {/* Transaction Table */}
-          <div className="bg-white rounded-lg shadow-lg border-0">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-800">최근 거래 내역</h3>
-                  <p className="text-gray-600">실시간 거래 데이터 및 분류 결과</p>
-                </div>
-              </div>
-              
-              <div className="text-center py-8 text-gray-500">
-                거래 내역이 없습니다. 파일을 업로드하여 시작하세요.
-              </div>
-            </div>
+          {/* Transaction List */}
+          <div className="mb-8">
+            <TransactionList companyId={selectedCompany} />
           </div>
         </div>
       </div>

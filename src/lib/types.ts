@@ -43,25 +43,29 @@ export interface ProcessingResultResponse {
 
 export interface ClassifiedTransactionResponse {
   id: string
-  transactionDate: string
-  counterparty: string
+  occurredAt: string  // 백엔드에서 실제 사용하는 필드명
   description: string
-  amount: number
-  category: string
-  categoryId: string
-  companyId: string
-  isIncome: boolean
+  deposit: number      // 입금액
+  withdraw: number     // 출금액
+  balance: number      // 잔액
+  branchInfo: string   // 거래점 정보
+  categoryName: string // 카테고리명
+  categoryId: string   // 카테고리 ID
+  companyId: string    // 회사 ID
+  classifiedAt: string // 분류된 시간
 }
 
 export interface UnclassifiedTransactionResponse {
   id: string
-  transactionDate: string
-  counterparty: string
+  occurredAt: string
   description: string
-  amount: number
+  deposit: number
+  withdraw: number
+  balance: number
+  branchInfo: string
   companyId: string
-  isIncome: boolean
   reason: string
+  reviewed: boolean
 }
 
 export interface CategorySummaryResponse {

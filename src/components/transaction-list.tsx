@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Badge } from './ui/badge'
 import { apiClient } from '../lib/api-client'
 import { ClassifiedTransactionResponse } from '../lib/types'
-import { Download, RefreshCw, TrendingUp, TrendingDown } from 'lucide-react'
+import { RefreshCw, TrendingUp, TrendingDown } from 'lucide-react'
 
 interface TransactionListProps {
   companyId: string
@@ -26,7 +26,9 @@ export function TransactionList({ companyId }: TransactionListProps) {
       setCurrentPage(page)
     } catch (error) {
       console.error('Failed to fetch transactions:', error)
-      alert('거래 내역을 불러오는데 실패했습니다.')
+      // 에러가 발생해도 빈 배열로 설정하여 UI가 깨지지 않도록 함
+      setTransactions([])
+      setTotalPages(0)
     } finally {
       setLoading(false)
     }
@@ -87,7 +89,7 @@ export function TransactionList({ companyId }: TransactionListProps) {
       <CardContent>
         {transactions.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            분류된 거래 내역이 없습니다.
+            분류된 거래 내역이 없습니다. 파일을 업로드하여 시작하세요.
           </div>
         ) : (
           <>
@@ -98,33 +100,46 @@ export function TransactionList({ companyId }: TransactionListProps) {
                   <TableHead>거래처</TableHead>
                   <TableHead>설명</TableHead>
                   <TableHead>카테고리</TableHead>
-                  <TableHead className="text-right">금액</TableHead>
+                  <TableHead className="text-right">입금</TableHead>
+                  <TableHead className="text-right">출금</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {transactions.map((transaction) => (
                   <TableRow key={transaction.id}>
-                    <TableCell>{formatDate(transaction.transactionDate)}</TableCell>
-                    <TableCell>{transaction.counterparty}</TableCell>
+                    <TableCell>{formatDate(transaction.occurredAt)}</TableCell>
+                    <TableCell>{transaction.branchInfo || '-'}</TableCell>
                     <TableCell className="max-w-xs truncate">
                       {transaction.description}
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary">
-                        {transaction.category}
+                        {transaction.categoryName}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {transaction.isIncome ? (
+                      {transaction.deposit > 0 ? (
+                        <div className="flex items-center justify-end gap-1">
                           <TrendingUp className="h-3 w-3 text-green-600" />
-                        ) : (
+                          <span className="text-green-600">
+                            {formatAmount(transaction.deposit)}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {transaction.withdraw > 0 ? (
+                        <div className="flex items-center justify-end gap-1">
                           <TrendingDown className="h-3 w-3 text-red-600" />
-                        )}
-                        <span className={transaction.isIncome ? "text-green-600" : "text-red-600"}>
-                          {formatAmount(transaction.amount)}
-                        </span>
-                      </div>
+                          <span className="text-red-600">
+                            {formatAmount(transaction.withdraw)}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
