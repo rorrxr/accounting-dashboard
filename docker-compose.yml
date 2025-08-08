@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  # Nginx 프록시 서버
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    ports:
+      - "70:70"
+    volumes:
+      # 빌드된 프론트엔드 파일을 nginx에 마운트
+      - ./dist:/usr/share/nginx/html
+    depends_on:
+      - frontend
+    networks:
+      - app-network
+
+  # 프론트엔드 빌드 및 서빙
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    volumes:
+      - ./dist:/app/dist
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
