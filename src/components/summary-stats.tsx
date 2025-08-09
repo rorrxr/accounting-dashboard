@@ -80,7 +80,7 @@ export function SummaryStats({ companyId }: SummaryStatsProps) {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-red-600">
-                {formatAmount(totalSummary.totalExpense)}
+                {formatAmount((totalSummary.totalExpense ?? totalSummary.totalExpenditure) || 0)}
               </div>
             </CardContent>
           </Card>
@@ -92,11 +92,11 @@ export function SummaryStats({ companyId }: SummaryStatsProps) {
             </CardHeader>
             <CardContent>
               <div className={`text-2xl font-bold ${
-                totalSummary.totalIncome - totalSummary.totalExpense >= 0 
+                totalSummary.totalIncome - ((totalSummary.totalExpense ?? totalSummary.totalExpenditure) || 0) >= 0 
                   ? 'text-green-600' 
                   : 'text-red-600'
               }`}>
-                {formatAmount(totalSummary.totalIncome - totalSummary.totalExpense)}
+                {formatAmount(totalSummary.totalIncome - ((totalSummary.totalExpense ?? totalSummary.totalExpenditure) || 0))}
               </div>
             </CardContent>
           </Card>
@@ -108,7 +108,7 @@ export function SummaryStats({ companyId }: SummaryStatsProps) {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {totalSummary.transactionCount.toLocaleString()}
+                {(totalSummary.transactionCount ?? totalSummary.recordCount ?? 0).toLocaleString()}
               </div>
             </CardContent>
           </Card>
@@ -147,18 +147,18 @@ export function SummaryStats({ companyId }: SummaryStatsProps) {
                     <div className="flex justify-between text-sm">
                       <span className="text-red-600">지출</span>
                       <span className="text-red-600 font-medium">
-                        {formatAmount(category.totalExpense)}
+                        {formatAmount((category.totalExpense ?? category.totalExpenditure) || 0)}
                       </span>
                     </div>
                     <div className="border-t pt-1 mt-2">
                       <div className="flex justify-between text-sm font-medium">
                         <span>순액</span>
                         <span className={
-                          category.totalIncome - category.totalExpense >= 0 
+                          category.totalIncome - (category.totalExpense ?? category.totalExpenditure ?? 0) >= 0 
                             ? 'text-green-600' 
                             : 'text-red-600'
                         }>
-                          {formatAmount(category.totalIncome - category.totalExpense)}
+                           {formatAmount(category.totalIncome - (category.totalExpense ?? category.totalExpenditure ?? 0))}
                         </span>
                       </div>
                     </div>

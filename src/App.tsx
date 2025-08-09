@@ -9,18 +9,23 @@ function App() {
   const [processingResult, setProcessingResult] = useState<ProcessingResultResponse | null>(null)
   const [summaryStats, setSummaryStats] = useState<CategorySummaryResponse | null>(null)
   const [loading, setLoading] = useState(false)
+  const [hasProcessed, setHasProcessed] = useState(false)
+  const [unclassifiedCount, setUnclassifiedCount] = useState<number>(0)
+  const [classifiedCount, setClassifiedCount] = useState<number>(0)
 
   const companies = [
     { id: "com_1", name: "A커머스" },
     { id: "com_2", name: "B커머스" }
   ]
 
-  // 회사 변경 시 통계 데이터 새로고침
+  // 업로드/처리 이후에만 통계 데이터 조회
   useEffect(() => {
-    if (selectedCompany) {
+    if (hasProcessed && selectedCompany) {
       fetchSummaryStats()
+      fetchUnclassifiedCount()
+      fetchClassifiedCount()
     }
-  }, [selectedCompany])
+  }, [selectedCompany, hasProcessed])
 
   const fetchSummaryStats = async () => {
     try {
@@ -29,15 +34,51 @@ function App() {
       setSummaryStats(stats)
     } catch (error) {
       console.error('Failed to fetch summary stats:', error)
+      // Set default values when API fails (e.g., no data available yet)
+      setSummaryStats({
+        categoryId: 'total',
+        categoryName: '전체',
+        totalIncome: 0,
+        totalExpenditure: 0,
+        recordCount: 0,
+        totalExpense: 0,
+        transactionCount: 0,
+        companyId: selectedCompany
+      })
     } finally {
       setLoading(false)
     }
   }
 
+  const fetchUnclassifiedCount = async () => {
+    try {
+      const list = await apiClient.getUnclassifiedRecords(selectedCompany)
+      setUnclassifiedCount(Array.isArray(list) ? list.length : 0)
+    } catch (error) {
+      console.error('Failed to fetch unclassified records:', error)
+      // API 실패 시 기존 처리 결과 숫자를 유지하도록 함
+      setUnclassifiedCount(processingResult?.unclassifiedCount ?? 0)
+    }
+  }
+
+  const fetchClassifiedCount = async () => {
+    try {
+      const list = await apiClient.getClassifiedRecords(selectedCompany)
+      setClassifiedCount(Array.isArray(list) ? list.length : 0)
+    } catch (error) {
+      console.error('Failed to fetch classified records:', error)
+      setClassifiedCount(processingResult?.classifiedCount ?? 0)
+    }
+  }
+
   const handleProcessingComplete = (result: ProcessingResultResponse) => {
+    setHasProcessed(true)
     setProcessingResult(result)
+    setUnclassifiedCount(result?.unclassifiedCount ?? 0)
+    setClassifiedCount(result?.classifiedCount ?? 0)
     // 처리 완료 후 통계 새로고침
     fetchSummaryStats()
+    fetchUnclassifiedCount()
   }
 
   return (
@@ -107,15 +148,15 @@ function App() {
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">{processingResult.totalTransactions}</div>
+                    <div className="text-2xl font-bold text-blue-600">{(classifiedCount || 0) + (unclassifiedCount || 0)}</div>
                     <div className="text-sm text-gray-600">총 거래 건수</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">{processingResult.classifiedCount}</div>
+                    <div className="text-2xl font-bold text-green-600">{classifiedCount}</div>
                     <div className="text-sm text-gray-600">분류 완료</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-orange-600">{processingResult.unclassifiedCount}</div>
+                    <div className="text-2xl font-bold text-orange-600">{unclassifiedCount}</div>
                     <div className="text-sm text-gray-600">미분류</div>
                   </div>
                   <div className="text-center">
@@ -189,7 +230,7 @@ function App() {
                 <div>
                   <p className="text-amber-100 text-sm font-medium">미분류</p>
                   <p className="text-2xl font-bold mt-1">
-                    {loading ? '로딩 중...' : `${processingResult?.unclassifiedCount || 0}건`}
+                    {loading ? '로딩 중...' : `${(unclassifiedCount || processingResult?.unclassifiedCount || 0)}건`}
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
@@ -204,7 +245,7 @@ function App() {
 
           {/* Transaction List */}
           <div className="mb-8">
-            <TransactionList companyId={selectedCompany} />
+            <TransactionList companyId={selectedCompany} enabled={hasProcessed} />
           </div>
         </div>
       </div>
